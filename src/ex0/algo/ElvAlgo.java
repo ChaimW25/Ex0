@@ -12,8 +12,12 @@ public class ElvAlgo implements Elevator {
     private PriorityQueue<Integer> floorToStop;
     //if we already passed the floor we add the given floor to the waiting list
     private PriorityQueue<Integer> waitingList;
+    //the Starting Point of the elv
+    private int StartingPoint;
     //variable that used in the algorithms
     private double algoVal;
+
+
 
     public double getAlgoVal() {
         return algoVal;
@@ -23,9 +27,11 @@ public class ElvAlgo implements Elevator {
         this.algoVal = algoVal;
     }
 
-    ElvAlgo(Elevator elv){
+    ElvAlgo(Elevator elv, Comparator comparator){
         _e=elv;
         algoVal=0;
+        this.floorToStop = new PriorityQueue<Integer>(comparator);
+        this.waitingList = new PriorityQueue<>(comparator);
     }
 
     @Override
@@ -92,6 +98,13 @@ public class ElvAlgo implements Elevator {
         return _e;
     }
 
+    public int getStartingPoint() {
+        return StartingPoint;
+    }
+
+    public void setStartingPoint(int startingPoint) {
+        StartingPoint = startingPoint;
+    }
 
     public PriorityQueue<Integer> getFloorToStop() {
         return floorToStop;

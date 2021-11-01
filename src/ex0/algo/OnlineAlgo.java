@@ -1,5 +1,5 @@
 package ex0.algo;
-
+import java.util.Comparator;
 import ex0.Building;
 import ex0.CallForElevator;
 import ex0.Elevator;
@@ -13,21 +13,31 @@ public class OnlineAlgo implements ElevatorAlgo {
     private Building _building;
     PriorityQueue<Elevator> fastestElv;
     //elv that taking passenger from top to bottom
-    ArrayList<ElvAlgo> downElv;
+    ArrayList<ElvAlgo> downElv = new ArrayList<ElvAlgo>();
     //elv that taking passenger from bottom to top
-    ArrayList<ElvAlgo> upElv;
+    ArrayList<ElvAlgo> upElv = new ArrayList<ElvAlgo>();
+
+
+
 
     public OnlineAlgo(Building b) {
         _building = b;
         _direction = UP;
-
 //       if(b.numberOfElevetors()>1){ -- need to add algo for 1  elv
         fastestElv = speedest(b);
         for (int i = 0; i < b.numberOfElevetors(); i++) {
             if (i % 2 == 0) {
-                downElv.add(downElv.size(), new ElvAlgo(b.getElevetor(fastestElv.poll().getID())));
+                ElvAlgo tmp = new ElvAlgo(b.getElevetor(fastestElv.poll().getID()),new downComparator());//downComparator()
+                downElv.add(downElv.size(), tmp);
+                //we need to change this value according to the experience and data
+                // that we will gather from the test case
+                tmp.setStartingPoint(_building.maxFloor());
             } else {
-                upElv.add(upElv.size(), new ElvAlgo(b.getElevetor(fastestElv.poll().getID())));
+                ElvAlgo tmp = new ElvAlgo(b.getElevetor(fastestElv.poll().getID()),new upComparator());
+                upElv.add(upElv.size(), tmp);
+                //we need to change this value according to the experience and data
+                // that we will gather from the test case
+                tmp.setStartingPoint(_building.minFloor());
             }
         }
     }
@@ -41,8 +51,6 @@ public class OnlineAlgo implements ElevatorAlgo {
     public String algoName() {
         return null;
     }
-
-
 
 
     public PriorityQueue<Elevator> speedest(Building b) {
@@ -62,8 +70,16 @@ public class OnlineAlgo implements ElevatorAlgo {
 
     @Override
     public int allocateAnElevator(CallForElevator c) {
-       ElvAlgo e= fastestToCallUp(c);
-        return e.getID();
+        int elevatorId = 0;
+        //up
+        if (c.getSrc() < c.getDest()) {
+            ElvAlgo e = fastestToCallUp(c);
+            elevatorId = e.getID();
+        } else {
+            ElvAlgo e = fastestToCallDown(c);
+            elevatorId = e.getID();
+        }
+        return elevatorId;
     }
 
     public ElvAlgo fastestToCallUp(CallForElevator c) {//do in the symetric way!
@@ -112,49 +128,185 @@ public class OnlineAlgo implements ElevatorAlgo {
         }
         //now ew check who got the lowest algoval - meaning the fastest route to the requested floor
         double tempSmallest = upElv.get(0).getAlgoVal();
-        ElvAlgo FastestElv = upElv.get(0);
+        ElvAlgo fastestElv = upElv.get(0);
         for (ElvAlgo e : upElv) {
             if (tempSmallest > e.getAlgoVal()) {
                 tempSmallest = e.getAlgoVal();
-                FastestElv = e;
+                fastestElv = e;
             }
         }
-        return FastestElv;
+        if (c.getSrc() >= fastestElv.getPos()) {
+            fastestElv.getFloorToStop().add(c.getSrc());
+            fastestElv.getFloorToStop().add(c.getDest());
+        } else {
+            fastestElv.getWaitingList().add(c.getSrc());
+            fastestElv.getWaitingList().add(c.getDest());
+        }
+        return fastestElv;
+    }
+
+
+    public ElvAlgo fastestToCallDown(CallForElevator c) {//do in the symetric way!
+        //initializing e AlgoVal
+        for (ElvAlgo e : downElv) {
+            e.setAlgoVal(Integer.MAX_VALUE);//not sure where it's from
+        }
+        //calculating for each elv the time to reach the wanted floor
+        for (ElvAlgo e : downElv) {
+            int currFloor = e.getPos();
+            //if we did not pass the floor yet
+            if (e.getPos() >= c.getSrc()) {
+                for (int floor_num : e.getFloorToStop()) {
+                    if (floor_num >= c.getSrc()) {
+                        e.setAlgoVal(e.getAlgoVal() + (currFloor - floor_num) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                        currFloor = floor_num;
+                    }
+                }
+                if (currFloor != c.getSrc()) {
+                    e.setAlgoVal(e.getAlgoVal() + (currFloor - c.getSrc()) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                }
+            }
+            //the elev already passed the requested floor thus we will check all the time that it take to reach her last destination,
+            //and then we will add the waiting list until we reach the requested floor
+            else {
+                for (int floor_num : e.getFloorToStop()) {
+                    e.setAlgoVal(e.getAlgoVal() + (currFloor - floor_num) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                    currFloor = floor_num;
+                }
+                if (!e.getWaitingList().isEmpty()) {
+
+                    if (c.getSrc() <= e.getWaitingList().peek()) {
+                        e.setAlgoVal(e.getAlgoVal() + (e.getWaitingList().peek() - currFloor) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                        currFloor = e.getWaitingList().peek();
+                        for (int floor_num : e.getWaitingList()) {
+                            if (c.getSrc() <= e.getWaitingList().peek()) {
+                                e.setAlgoVal(e.getAlgoVal() + (currFloor - floor_num) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                                currFloor = floor_num;
+                            }
+                        }
+                        e.setAlgoVal(e.getAlgoVal() + (currFloor - c.getSrc()) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                    }
+                    e.setAlgoVal(e.getAlgoVal() + (currFloor - c.getSrc()) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                }
+            }
+        }
+        //now ew check who got the lowest algoval - meaning the fastest route to the requested floor
+        double tempSmallest = downElv.get(0).getAlgoVal();
+        ElvAlgo fastestElv = downElv.get(0);
+        for (ElvAlgo e : downElv) {
+            if (tempSmallest > e.getAlgoVal()) {
+                tempSmallest = e.getAlgoVal();
+                fastestElv = e;
+            }
+        }
+        if (c.getSrc() <= fastestElv.getPos()) {
+            if (!fastestElv.getFloorToStop().contains(c.getSrc())) {
+                fastestElv.getFloorToStop().add(c.getSrc());
+            }
+            if (!fastestElv.getFloorToStop().contains(c.getDest())) {
+                fastestElv.getFloorToStop().add(c.getDest());
+            }
+        } else {
+            if (!fastestElv.getWaitingList().contains(c.getSrc())) {
+                fastestElv.getWaitingList().add(c.getSrc());
+            }
+            if (!fastestElv.getWaitingList().contains(c.getDest())) {
+                fastestElv.getWaitingList().add(c.getDest());
+            }
+        }
+        return fastestElv;
     }
 
 
     @Override
     public void cmdElevator(int elevID) {
-    ElvAlgo elevIndex = null;
-    //diraction 0 for down, 1 for up
-    int diraction = 0;
-        for (ElvAlgo e: downElv) {
-            if(e.getID()==elevID){
-                elevIndex=e;
+        ElvAlgo elev = null;
+        //diraction 0 for down, 1 for up
+        int diraction = 0;
+        //find the right elvAlgo with the given id
+        for (ElvAlgo e : downElv) {
+            if (e.getID() == elevID) {
+                elev = e;
                 break;
             }
         }
-        if(elevIndex==null){
-            diraction=1;
-            for (ElvAlgo e: upElv) {
-                if(e.getID()==elevID){
-                    elevIndex=e;
+        //find the right elvAlgo with the given id if we did not find it in downElv
+        if (elev == null) {
+            diraction = 1;
+            for (ElvAlgo e : upElv) {
+                if (e.getID() == elevID) {
+                    elev = e;
                     break;
                 }
+            }
+        }
+        //the ele
+        int state = elev.getState();
+        int currPos = elev.getPos();
+        if (state != ERROR) {
+            if (state == LEVEL) {
+                //we check if the list does not empty
+                if (!elev.getFloorToStop().isEmpty()) {
+                    //----------------------------------------------------------------------
+                    if (elev.getFloorToStop().size() > 8) {
+                        System.out.printf("elev id: %d \n", elev.getID());
+                        System.out.print("elev getFloorToStop()\n");
+                        for (Integer e : elev.getFloorToStop()) {
+                            System.out.print(e + ", ");
+                        }
+                        System.out.print("\n\n");
+
+                    }
+
+                    //----------------------------------------------------------------------
+                    if (currPos == elev.getFloorToStop().peek()) {
+                        //removing the first floor in our list
+                        elev.getFloorToStop().poll();
+                        //we then call again to the function to get further instruction
+                        cmdElevator(elevID);
+                    }
+                    //the currPos != to the first val
+                    else {
+
+                        elev.goTo(elev.getFloorToStop().peek());
+                    }
+                }
+                //the list getFloorToStop() isEmpty()
+                else {
+                    //both of the list are empty, so we will send the elv to the starting point
+                    if (elev.getWaitingList().isEmpty()) {
+                        if (currPos != elev.getStartingPoint()) {
+                            elev.goTo(elev.getStartingPoint());
+                        }
+                    } else {
+                        //we update our list to the waiting list
+                        elev.getFloorToStop().addAll(elev.getWaitingList());
+                        elev.getWaitingList().clear();
+                        cmdElevator(elevID);
+                    }
+                }
+            }
+            //the state of the elv is error in this case -- we call maintenance :) --
+            else {
+                //do nothing the elv broke
+            }
+
         }
 
-            if((elevIndex.getFloorToStop().isEmpty())&& elevIndex.getWaitingList().isEmpty()) {
-                if (diraction == 1) {
-                    elevIndex.goTo(elevIndex.getMinFloor());
-                } else {
-                    elevIndex.goTo(elevIndex.getMaxFloor());
-                }
-            }
-            if(!elevIndex.getFloorToStop().isEmpty()){
+    }
 
-            }
-                }
+    public class upComparator implements Comparator<Integer> {
+        @Override
+        public int compare(Integer o1, Integer o2) {
+            return o1 - o2;
+        }
+    }
 
+    public class downComparator implements Comparator<Integer> {
+        @Override
+        public int compare(Integer o1, Integer o2) {
+            return o2 - o1;
+        }
     }
 }
 
