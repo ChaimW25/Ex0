@@ -13,7 +13,7 @@ public class ElvAlgo implements Elevator {
     //if we already passed the floor we add the given floor to the waiting list
     private PriorityQueue<Integer> waitingList;
     //variable that used in the algorithms
-    double algoVal;
+    private double algoVal;
 
     public double getAlgoVal() {
         return algoVal;

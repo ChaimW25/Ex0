@@ -16,20 +16,21 @@ public class OnlineAlgo implements ElevatorAlgo {
     ArrayList<ElvAlgo> downElv;
     //elv that taking passenger from bottom to top
     ArrayList<ElvAlgo> upElv;
+
     public OnlineAlgo(Building b) {
         _building = b;
-       _direction = UP;
+        _direction = UP;
 
 //       if(b.numberOfElevetors()>1){ -- need to add algo for 1  elv
         fastestElv = speedest(b);
         for (int i = 0; i < b.numberOfElevetors(); i++) {
-            if(i%2==0){
-                downElv.add(downElv.size(),new ElvAlgo(b.getElevetor(fastestElv.poll().getID())));
-            }else{
-                upElv.add(upElv.size(),new ElvAlgo(b.getElevetor(fastestElv.poll().getID())));
+            if (i % 2 == 0) {
+                downElv.add(downElv.size(), new ElvAlgo(b.getElevetor(fastestElv.poll().getID())));
+            } else {
+                upElv.add(upElv.size(), new ElvAlgo(b.getElevetor(fastestElv.poll().getID())));
             }
         }
-       }
+    }
 
     @Override
     public Building getBuilding() {
@@ -41,15 +42,7 @@ public class OnlineAlgo implements ElevatorAlgo {
         return null;
     }
 
-    @Override
-    public int allocateAnElevator(CallForElevator c) {
-        return 0;
-    }
 
-    @Override
-    public void cmdElevator(int elev) {
-
-    }
 
 
     public PriorityQueue<Elevator> speedest(Building b) {
@@ -64,33 +57,106 @@ public class OnlineAlgo implements ElevatorAlgo {
             pq.add(b.getElevetor(i));
 
         }
-    return pq;
+        return pq;
     }
 
-}
+    @Override
+    public int allocateAnElevator(CallForElevator c) {
+       ElvAlgo e= fastestToCallUp(c);
+        return e.getID();
+    }
 
-    public ElvAlgo fastestToCallUp (CallForElevator c){
-      //initializing e AlgoVal
-        for (ElvAlgo e:upElv) {
-            e.setAlgoVal(0);}
-    //calculating for each elv the time to reach the wanted floor
-        for (ElvAlgo e:upElv) {
-            e.algoVal=e.getSpeed()*(Math.abs(e.getPos()-c.getSrc())) +e.getStartTime()+e.getStopTime()+e.getTimeForClose()+e.getTimeForClose();
-            int currFloor=e.getPos();
-            for (int i:e.getFloorToStop()) {
-                if (i=<c.getSrc()){
-                    e.algoVal+=currFloor
-                            //jhh
+    public ElvAlgo fastestToCallUp(CallForElevator c) {//do in the symetric way!
+        //initializing e AlgoVal
+        for (ElvAlgo e : upElv) {
+            e.setAlgoVal(0);
+        }
+        //calculating for each elv the time to reach the wanted floor
+        for (ElvAlgo e : upElv) {
+            int currFloor = e.getPos();
+            //if we did not pass the floor yet
+            if (e.getPos() <= c.getSrc()) {
+                for (int floor_num : e.getFloorToStop()) {
+                    if (floor_num <= c.getSrc()) {
+                        e.setAlgoVal(e.getAlgoVal() + (floor_num - currFloor) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                        currFloor = floor_num;
+                    }
+                }
+                if (currFloor != c.getSrc()) {
+                    e.setAlgoVal(e.getAlgoVal() + (c.getSrc() - currFloor) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                }
+            }
+            //the elev already passed the requested floor thus we will check all the time that it take to reach her last destination,
+            //and then we will add the waiting list until we reach the requested floor
+            else {
+                for (int floor_num : e.getFloorToStop()) {
+                    e.setAlgoVal(e.getAlgoVal() + (floor_num - currFloor) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                    currFloor = floor_num;
+                }
+                if (!e.getWaitingList().isEmpty()) {
+
+                    if (c.getSrc() >= e.getWaitingList().peek()) {
+                        e.setAlgoVal(e.getAlgoVal() + (currFloor - e.getWaitingList().peek()) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                        currFloor = e.getWaitingList().peek();
+                        for (int floor_num : e.getWaitingList()) {
+                            if (c.getSrc() >= e.getWaitingList().peek()) {
+                                e.setAlgoVal(e.getAlgoVal() + (floor_num - currFloor) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                                currFloor = floor_num;
+                            }
+                        }
+                        e.setAlgoVal(e.getAlgoVal() + (c.getSrc() - currFloor) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
+                    }
+                    e.setAlgoVal(e.getAlgoVal() + (currFloor - c.getSrc()) * e.getSpeed() + e.getStartTime() + e.getStopTime() + e.getTimeForOpen() + e.getTimeForClose());
                 }
             }
         }
+        //now ew check who got the lowest algoval - meaning the fastest route to the requested floor
+        double tempSmallest = upElv.get(0).getAlgoVal();
+        ElvAlgo FastestElv = upElv.get(0);
+        for (ElvAlgo e : upElv) {
+            if (tempSmallest > e.getAlgoVal()) {
+                tempSmallest = e.getAlgoVal();
+                FastestElv = e;
+            }
+        }
+        return FastestElv;
     }
 
-    public double standartCal (El)
 
-    public double dist ()
+    @Override
+    public void cmdElevator(int elevID) {
+    ElvAlgo elevIndex = null;
+    //diraction 0 for down, 1 for up
+    int diraction = 0;
+        for (ElvAlgo e: downElv) {
+            if(e.getID()==elevID){
+                elevIndex=e;
+                break;
+            }
+        }
+        if(elevIndex==null){
+            diraction=1;
+            for (ElvAlgo e: upElv) {
+                if(e.getID()==elevID){
+                    elevIndex=e;
+                    break;
+                }
+        }
 
+            if((elevIndex.getFloorToStop().isEmpty())&& elevIndex.getWaitingList().isEmpty()) {
+                if (diraction == 1) {
+                    elevIndex.goTo(elevIndex.getMinFloor());
+                } else {
+                    elevIndex.goTo(elevIndex.getMaxFloor());
+                }
+            }
+            if(!elevIndex.getFloorToStop().isEmpty()){
 
+            }
+                }
+
+    }
+}
 
 //    private boolean[] _firstTime;
 //    PriorityQueue<Integer> pQueue = new PriorityQueue<Integer>();
