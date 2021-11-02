@@ -34,6 +34,35 @@ public class ElvAlgo implements Elevator {
         this.waitingList = new PriorityQueue<>(comparator);
     }
 
+
+    public Elevator get_e() {
+        return _e;
+    }
+
+    public int getStartingPoint() {
+        return StartingPoint;
+    }
+
+    public void setStartingPoint(int startingPoint) {
+        StartingPoint = startingPoint;
+    }
+
+    public PriorityQueue<Integer> getFloorToStop() {
+        return floorToStop;
+    }
+
+    public void setFloorToStop(PriorityQueue<Integer> floorToStop) {
+        this.floorToStop = floorToStop;
+    }
+
+    public PriorityQueue<Integer> getWaitingList() {
+        return waitingList;
+    }
+
+    public void setWaitingList(PriorityQueue<Integer> waitingList) {
+        this.waitingList = waitingList;
+    }
+
     @Override
     public int getMinFloor() {
         return _e.getMinFloor();
@@ -94,31 +123,4 @@ public class ElvAlgo implements Elevator {
         return _e.getID();
     }
 
-    public Elevator get_e() {
-        return _e;
-    }
-
-    public int getStartingPoint() {
-        return StartingPoint;
-    }
-
-    public void setStartingPoint(int startingPoint) {
-        StartingPoint = startingPoint;
-    }
-
-    public PriorityQueue<Integer> getFloorToStop() {
-        return floorToStop;
-    }
-
-    public void setFloorToStop(PriorityQueue<Integer> floorToStop) {
-        this.floorToStop = floorToStop;
-    }
-
-    public PriorityQueue<Integer> getWaitingList() {
-        return waitingList;
-    }
-
-    public void setWaitingList(PriorityQueue<Integer> waitingList) {
-        this.waitingList = waitingList;
-    }
 }
