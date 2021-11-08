@@ -1,73 +1,128 @@
 package ex0.algo;
+import java.util.*;
 
 import ex0.Building;
-import ex0.simulator.Simulator_A;
-import org.junit.Test;
+import ex0.Elevator;
 
-import static org.junit.Assert.*;
+public class ElvAlgo implements Elevator {
 
-public class OnlineAlgoTest {
-    Building B1;
-    Building B5;
-    Building B9;
-
-    OnlineAlgo OnlineAlgo1;
-    OnlineAlgo OnlineAlgo9;
-    OnlineAlgo OnlineAlgo5;
-
-    public OnlineAlgoTest() {
-        Simulator_A.initData(1, null);
-        B1 = Simulator_A.getBuilding();
-        Simulator_A.initData(5, null);
-        B5 = Simulator_A.getBuilding();
-        Simulator_A.initData(9, null);
-        B9 = Simulator_A.getBuilding();
-    OnlineAlgo1 = new OnlineAlgo(B1);
-    OnlineAlgo5 = new OnlineAlgo(B5);
-    OnlineAlgo9 = new OnlineAlgo(B9);}
+    //hold the elevator that given when we construct the class
+    private Elevator _e;
+    //hold the list of the floor that we need to stop
+    private PriorityQueue<Integer> floorToStop;
+    //if we already passed the floor we add the given floor to the waiting list
+    private PriorityQueue<Integer> waitingList;
+    //the Starting Point of the elv
+    private int StartingPoint;
+    //variable that used in the algorithms
+    private double algoVal;
 
 
-    @Test
-    public void getBuilding() {
-        assertEquals(B9.maxFloor(),OnlineAlgo9.getBuilding().maxFloor());
-        assertEquals(B5.maxFloor(),OnlineAlgo5.getBuilding().maxFloor());
+
+    public double getAlgoVal() {
+        return algoVal;
     }
 
-    @Test
-    public void algoName() {
-        assertEquals("Ex0_OOP_Online_Algo",OnlineAlgo9.algoName());
-
+    public void setAlgoVal(double algoVal) {
+        this.algoVal = algoVal;
     }
 
-    @Test
-    public void allocateAnElevator() {
-        assertEquals(-5,B5.getElevetor(0).getPos());
-        B5.getElevetor(0).goTo(3);
-        assertEquals(1,OnlineAlgo5.getBuilding().getElevetor(0).getState());
-        assertEquals(-2,B1.getElevetor(0).getPos());
-        B1.getElevetor(0).goTo(3);
-        assertEquals(1,OnlineAlgo1.getBuilding().getElevetor(0).getState());
-
+    ElvAlgo(Elevator elv, Comparator comparator){
+        _e=elv;
+        algoVal=0;
+        this.floorToStop = new PriorityQueue<Integer>(comparator);
+        this.waitingList = new PriorityQueue<>(comparator);
     }
 
 
-    @Test
-    public void cmdElevator() {
-        assertEquals(0,B5.getElevetor(4).getState());
-        B5.getElevetor(4).goTo(3);
-        OnlineAlgo5.cmdElevator(4);
-        assertEquals(1,B5.getElevetor(4).getState());
-        assertEquals(0,B9.getElevetor(0).getState());
-        B9.getElevetor(0).goTo(5);
-        OnlineAlgo9.cmdElevator(0);
-        assertEquals(1,B9.getElevetor(0).getState());
+    public Elevator get_e() {
+        return _e;
     }
 
-
-
+    public int getStartingPoint() {
+        return StartingPoint;
     }
 
+    public void setStartingPoint(int startingPoint) {
+        StartingPoint = startingPoint;
+    }
 
+    public PriorityQueue<Integer> getFloorToStop() {
+        return floorToStop;
+    }
 
+    public void setFloorToStop(PriorityQueue<Integer> floorToStop) {
+        this.floorToStop = floorToStop;
+    }
+
+    public PriorityQueue<Integer> getWaitingList() {
+        return waitingList;
+    }
+
+    public void setWaitingList(PriorityQueue<Integer> waitingList) {
+        this.waitingList = waitingList;
+    }
+
+    @Override
+    public int getMinFloor() {
+        return _e.getMinFloor();
+    }
+
+    @Override
+    public int getMaxFloor() {
+        return _e.getMaxFloor();
+    }
+
+    @Override
+    public double getTimeForOpen() {
+        return _e.getTimeForOpen();
+    }
+
+    @Override
+    public double getTimeForClose() {
+        return _e.getTimeForClose();
+    }
+
+    @Override
+    public int getState() {
+        return _e.getState();
+    }
+
+    @Override
+    public int getPos() {
+        return _e.getPos();
+    }
+
+    @Override
+    public boolean goTo(int floor) {
+        return _e.goTo(floor);
+    }
+
+    @Override
+    public boolean stop(int floor) {
+        return _e.stop(floor);
+    }
+
+    @Override
+    public double getSpeed() {
+        return _e.getSpeed();
+    }
+
+    @Override
+    public double getStartTime() {
+        return _e.getStartTime();
+    }
+
+    @Override
+    public double getStopTime() {
+        return _e.getStopTime();
+    }
+
+    @Override
+    public int getID() {
+        return _e.getID();
+    }
+
+}
 
 
